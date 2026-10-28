@@ -20,7 +20,7 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-[280px] rounded-xl transition-colors ${
+      className={`flex-1 min-w-[280px] min-h-[200px] rounded-xl transition-colors ${
         isOver ? 'bg-blue-50 ring-2 ring-blue-200' : 'bg-gray-50'
       }`}
     >
@@ -358,6 +358,13 @@ export default function BoardPage() {
   const project = projects.find(p => p.id === projectId);
   const projectTasks = tasks.filter(t => t.projectId === projectId);
 
+  // Автоматически закрываем модалку, если задача была удалена
+  useEffect(() => {
+    if (selectedTask && !tasks.find(t => t.id === selectedTask.id)) {
+      setSelectedTask(null);
+    }
+  }, [tasks, selectedTask]);
+
   if (!project) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -377,7 +384,22 @@ export default function BoardPage() {
     if (!over) return;
 
     const taskId = active.id as string;
-    const newStatus = over.id as TaskStatus;
+    const overId = over.id as string;
+    
+    // Проверяем, что over.id является валидным статусом колонки
+    const validStatuses = STATUS_COLUMNS.map(col => col.id);
+    if (!validStatuses.includes(overId as TaskStatus)) {
+      return; // Не валидный статус, игнорируем
+    }
+    
+    const newStatus = overId as TaskStatus;
+    const task = projectTasks.find(t => t.id === taskId);
+    
+    // Если задача уже в этой колонке, не делаем ничего
+    if (task && task.status === newStatus) {
+      return;
+    }
+    
     const columnTasks = projectTasks.filter(t => t.status === newStatus);
     const newOrder = columnTasks.length;
 
@@ -517,7 +539,8 @@ export default function BoardPage() {
       {/* Task Detail Modal */}
       {selectedTask && (
         <TaskModal
-          task={selectedTask}
+          key={selectedTask.id}
+          task={tasks.find(t => t.id === selectedTask.id) || selectedTask}
           project={project}
           onClose={() => setSelectedTask(null)}
         />

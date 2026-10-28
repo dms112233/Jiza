@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../hooks/useStore';
 import { STATUS_COLUMNS, PRIORITY_COLORS, TYPE_ICONS, getDeadlineStatus, formatDeadline, type Task, type Project, type TaskStatus, type TaskPriority, type TaskType } from '../types';
 
@@ -15,6 +15,12 @@ export default function TaskModal({ task, project, onClose }: Props) {
   const [commentText, setCommentText] = useState('');
   const [labelInput, setLabelInput] = useState('');
   const [editingDescription, setEditingDescription] = useState(!task.description);
+
+  // Синхронизация состояния с пропсами при изменении задачи
+  useEffect(() => {
+    setTitle(task.title);
+    setDescription(task.description);
+  }, [task.id, task.title, task.description]);
 
   const assignee = users.find(u => u.id === task.assigneeId);
   const reporter = users.find(u => u.id === task.reporterId);
@@ -178,7 +184,7 @@ export default function TaskModal({ task, project, onClose }: Props) {
                     onClick={() => setEditingDescription(true)}
                     className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg min-h-[80px] cursor-pointer hover:bg-gray-100 transition"
                   >
-                    {task.description || (
+                    {description || (
                       <span className="text-gray-400 italic">Нажмите, чтобы добавить описание...</span>
                     )}
                   </div>
