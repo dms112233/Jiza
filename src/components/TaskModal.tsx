@@ -10,10 +10,11 @@ interface Props {
 
 export default function TaskModal({ task, project, onClose }: Props) {
   const { users, updateTask, deleteTask, comments, addComment } = useStore();
-  const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [commentText, setCommentText] = useState('');
+  const [labelInput, setLabelInput] = useState('');
+  const [editingDescription, setEditingDescription] = useState(!task.description);
 
   const assignee = users.find(u => u.id === task.assigneeId);
   const reporter = users.find(u => u.id === task.reporterId);
@@ -21,9 +22,17 @@ export default function TaskModal({ task, project, onClose }: Props) {
   const projectMembers = users.filter(u => project.members.includes(u.id));
   const deadlineStatus = getDeadlineStatus(task.deadline);
 
-  const handleSave = () => {
-    updateTask(task.id, { title, description });
-    setEditing(false);
+  const handleSaveTitle = () => {
+    if (title.trim() && title !== task.title) {
+      updateTask(task.id, { title: title.trim() });
+    }
+  };
+
+  const handleSaveDescription = () => {
+    if (description !== task.description) {
+      updateTask(task.id, { description: description.trim() });
+    }
+    setEditingDescription(false);
   };
 
   const handleAddComment = () => {
@@ -38,6 +47,17 @@ export default function TaskModal({ task, project, onClose }: Props) {
       deleteTask(task.id);
       onClose();
     }
+  };
+
+  const handleAddLabel = () => {
+    if (labelInput.trim() && !task.labels.includes(labelInput.trim())) {
+      updateTask(task.id, { labels: [...task.labels, labelInput.trim()] });
+      setLabelInput('');
+    }
+  };
+
+  const handleRemoveLabel = (label: string) => {
+    updateTask(task.id, { labels: task.labels.filter(l => l !== label) });
   };
 
   const deadlineBadge = () => {
@@ -72,38 +92,33 @@ export default function TaskModal({ task, project, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-gray-100">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 flex-1">
               <span className="text-xl">{TYPE_ICONS[task.type]}</span>
               <div className="flex-1">
-                <p className="text-xs text-gray-400 font-mono">{project.key}-{task.id.slice(0, 4).toUpperCase()}</p>
-                {editing ? (
-                  <input
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    className="text-lg font-bold text-gray-900 border-b border-blue-300 outline-none w-full"
-                  />
-                ) : (
-                  <h2 className="text-lg font-bold text-gray-900">{task.title}</h2>
-                )}
+                <p className="text-xs text-gray-400 font-mono mb-1">{project.key}-{task.id.slice(0, 4).toUpperCase()}</p>
+                <input
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  onBlur={handleSaveTitle}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      handleSaveTitle();
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  className="text-lg font-bold text-gray-900 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none w-full transition"
+                />
               </div>
             </div>
-            <div className="flex items-center gap-2 ml-3">
-              <button onClick={() => setEditing(!editing)} className="p-2 text-gray-400 hover:text-gray-600 transition">
-                <i className={`fas ${editing ? 'fa-save' : 'fa-edit'}`}></i>
-              </button>
-              {editing && (
-                <button onClick={handleSave} className="p-2 text-blue-600 hover:text-blue-700 transition">
-                  <i className="fas fa-check"></i>
-                </button>
-              )}
-              <button onClick={handleDelete} className="p-2 text-red-400 hover:text-red-600 transition">
+            <div className="flex items-center gap-2">
+              <button onClick={handleDelete} className="p-2 text-red-400 hover:text-red-600 transition" title="Удалить задачу">
                 <i className="fas fa-trash"></i>
               </button>
-              <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 transition">
+              <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 transition" title="Закрыть">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -117,34 +132,95 @@ export default function TaskModal({ task, project, onClose }: Props) {
             <div className="md:col-span-2 space-y-6">
               {/* Description */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Описание</h3>
-                {editing ? (
-                  <textarea
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    className="w-full p-3 border border-gray-200 rounded-lg text-sm resize-none h-32 focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="Добавьте описание..."
-                  />
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-gray-700">Описание</h3>
+                  {!editingDescription && (
+                    <button
+                      onClick={() => setEditingDescription(true)}
+                      className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    >
+                      <i className="fas fa-edit text-xs"></i>
+                      Редактировать
+                    </button>
+                  )}
+                </div>
+                {editingDescription ? (
+                  <div>
+                    <textarea
+                      autoFocus
+                      value={description}
+                      onChange={e => setDescription(e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-lg text-sm resize-none h-32 focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="Добавьте подробное описание задачи..."
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={handleSaveDescription}
+                        className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition"
+                      >
+                        Сохранить
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDescription(task.description);
+                          setEditingDescription(false);
+                        }}
+                        className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 transition"
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg min-h-[60px]">
-                    {task.description || 'Нет описания'}
-                  </p>
+                  <div
+                    onClick={() => setEditingDescription(true)}
+                    className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg min-h-[80px] cursor-pointer hover:bg-gray-100 transition"
+                  >
+                    {task.description || (
+                      <span className="text-gray-400 italic">Нажмите, чтобы добавить описание...</span>
+                    )}
+                  </div>
                 )}
               </div>
 
               {/* Labels */}
-              {task.labels.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Теги</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {task.labels.map(label => (
-                      <span key={label} className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
-                        #{label}
-                      </span>
-                    ))}
-                  </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Теги</h3>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {task.labels.map(label => (
+                    <span key={label} className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100 flex items-center gap-1">
+                      #{label}
+                      <button
+                        onClick={() => handleRemoveLabel(label)}
+                        className="text-blue-400 hover:text-blue-600 ml-1"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={labelInput}
+                    onChange={e => setLabelInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddLabel();
+                      }
+                    }}
+                    placeholder="Добавить тег..."
+                    className="flex-1 text-xs px-2 py-1.5 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 outline-none"
+                  />
+                  <button
+                    onClick={handleAddLabel}
+                    className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition"
+                  >
+                    + Добавить
+                  </button>
+                </div>
+              </div>
 
               {/* Comments */}
               <div>

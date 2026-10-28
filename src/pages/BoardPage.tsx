@@ -33,7 +33,7 @@ function InlineTaskForm({
 }: {
   status: TaskStatus;
   onClose: () => void;
-  onCreate: (title: string, type: TaskType, priority: TaskPriority, deadline: string | null, startDate: string | null, assigneeId: string | null, labels: string[]) => void;
+  onCreate: (title: string, description: string, type: TaskType, priority: TaskPriority, deadline: string | null, startDate: string | null, assigneeId: string | null, labels: string[]) => void;
 }) {
   const { users, projects } = useStore();
   const { projectId } = useParams<{ projectId: string }>();
@@ -41,6 +41,7 @@ function InlineTaskForm({
   const projectMembers = project ? users.filter(u => project.members.includes(u.id)) : [];
 
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [type, setType] = useState<TaskType>('task');
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [deadline, setDeadline] = useState('');
@@ -62,6 +63,7 @@ function InlineTaskForm({
     if (title.trim()) {
       onCreate(
         title.trim(),
+        description.trim(),
         type,
         priority,
         deadline || null,
@@ -70,6 +72,7 @@ function InlineTaskForm({
         labels
       );
       setTitle('');
+      setDescription('');
       setType('task');
       setPriority('medium');
       setDeadline('');
@@ -95,6 +98,17 @@ function InlineTaskForm({
         }}
         placeholder="Введите название задачи..."
         className="w-full text-sm font-medium text-gray-800 placeholder-gray-400 outline-none resize-none mb-2"
+      />
+
+      <textarea
+        value={description}
+        onChange={e => setDescription(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Escape') onClose();
+        }}
+        placeholder="Добавьте описание задачи..."
+        rows={2}
+        className="w-full text-xs text-gray-600 placeholder-gray-400 outline-none resize-none mb-2 p-2 bg-gray-50 rounded border border-gray-200 focus:border-blue-300 focus:ring-1 focus:ring-blue-500"
       />
 
       {showOptions && (
@@ -265,12 +279,18 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
         isDragging ? 'opacity-50 shadow-lg' : ''
       } ${deadlineStatus === 'overdue' ? 'border-l-4 border-l-red-400' : deadlineStatus === 'due_soon' ? 'border-l-4 border-l-amber-400' : ''}`}
     >
-      <div className="flex items-start gap-2 mb-2">
+      <div className="flex items-start gap-2 mb-1">
         <span className="text-sm">{TYPE_ICONS[task.type]}</span>
         <p className="text-sm font-medium text-gray-800 flex-1 leading-snug">{task.title}</p>
       </div>
+
+      {task.description && (
+        <p className="text-xs text-gray-500 mb-2 line-clamp-2 pl-6 leading-relaxed">
+          {task.description}
+        </p>
+      )}
       
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap pl-6">
         {task.labels.slice(0, 2).map(label => (
           <span key={label} className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">
             {label}
@@ -415,8 +435,9 @@ export default function BoardPage() {
                         <InlineTaskForm
                           status={column.id}
                           onClose={() => setAddingToColumn(null)}
-                          onCreate={(title, type, priority, deadline, startDate, assigneeId, labels) => {
+                          onCreate={(title, description, type, priority, deadline, startDate, assigneeId, labels) => {
                             createTask(project!.id, title, type, priority, column.id, {
+                              description,
                               deadline,
                               startDate,
                               assigneeId,
