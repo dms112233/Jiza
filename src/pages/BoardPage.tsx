@@ -279,13 +279,18 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
         isDragging ? 'opacity-50 shadow-lg' : ''
       } ${deadlineStatus === 'overdue' ? 'border-l-4 border-l-red-400' : deadlineStatus === 'due_soon' ? 'border-l-4 border-l-amber-400' : ''}`}
     >
-      {/* Edit hint on hover */}
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-          <i className="fas fa-edit text-xs"></i>
-          <span>Редактировать</span>
-        </div>
-      </div>
+      {/* Edit button on hover */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm z-10"
+        title="Редактировать задачу"
+      >
+        <i className="fas fa-edit text-xs"></i>
+        <span>Редактировать</span>
+      </button>
 
       <div className="flex items-start gap-2 mb-1">
         <span className="text-sm">{TYPE_ICONS[task.type]}</span>
