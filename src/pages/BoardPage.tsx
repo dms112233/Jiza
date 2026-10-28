@@ -10,6 +10,7 @@ import {
   PointerSensor,
   type DragStartEvent,
   type DragEndEvent,
+  type DragCancelEvent,
 } from '@dnd-kit/core';
 import { useStore } from '../hooks/useStore';
 import { STATUS_COLUMNS, PRIORITY_COLORS, TYPE_ICONS, getDeadlineStatus, formatDeadline, type Task, type TaskStatus, type TaskType, type TaskPriority } from '../types';
@@ -20,9 +21,10 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-[280px] min-h-[200px] rounded-xl transition-colors ${
+      className={`flex-1 min-w-[280px] flex flex-col rounded-xl transition-colors ${
         isOver ? 'bg-blue-50 ring-2 ring-blue-200' : 'bg-gray-50'
       }`}
+      style={{ minHeight: '400px' }}
     >
       {children}
     </div>
@@ -251,7 +253,6 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
 
   // Отслеживаем был ли drag для предотвращения клика после перетаскивания
   const wasDraggingRef = useRef(false);
-  const dragStartTimeRef = useRef<number>(0);
   
   useEffect(() => {
     if (isDragging) {
@@ -259,15 +260,9 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
     }
   }, [isDragging]);
 
-  const handlePointerDown = () => {
-    dragStartTimeRef.current = Date.now();
-  };
-
   const handleClick = () => {
-    const timeSincePointerDown = Date.now() - dragStartTimeRef.current;
-    
-    // Если было перетаскивание или удержание дольше 200мс, не открываем модалку
-    if (wasDraggingRef.current || timeSincePointerDown > 200) {
+    // Если было перетаскивание, не открываем модалку и сбрасываем флаг
+    if (wasDraggingRef.current) {
       wasDraggingRef.current = false;
       return;
     }
@@ -303,7 +298,6 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
       {...attributes}
       {...listeners}
       onClick={handleClick}
-      onPointerDown={handlePointerDown}
       className={`bg-white rounded-lg p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all ${
         isDragging ? 'opacity-50 shadow-lg' : ''
       } ${deadlineStatus === 'overdue' ? 'border-l-4 border-l-red-400' : deadlineStatus === 'due_soon' ? 'border-l-4 border-l-amber-400' : ''}`}
@@ -452,7 +446,12 @@ export default function BoardPage() {
 
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto p-4">
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext 
+          sensors={sensors} 
+          onDragStart={handleDragStart} 
+          onDragEnd={handleDragEnd}
+          onDragCancel={(_event: DragCancelEvent) => setActiveTask(null)}
+        >
           <div className="flex gap-4 h-full min-w-max">
             {STATUS_COLUMNS.map(column => {
               const columnTasks = projectTasks
@@ -486,7 +485,7 @@ export default function BoardPage() {
                     </div>
 
                     {/* Tasks */}
-                    <div className="space-y-2 min-h-[100px]">
+                    <div className="space-y-2 flex-1">
                       {columnTasks.map(task => (
                         <DraggableCard
                           key={task.id}
