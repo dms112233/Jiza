@@ -111,7 +111,9 @@ export default function TaskModal({ task, project, onClose }: Props) {
                     }
                   }}
                   className="text-lg font-bold text-gray-900 border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none w-full transition"
+                  title="Нажмите, чтобы изменить название"
                 />
+                <p className="text-xs text-gray-400 mt-1 italic">💡 Все поля ниже можно редактировать — изменения сохраняются автоматически</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
