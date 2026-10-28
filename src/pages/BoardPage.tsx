@@ -244,7 +244,6 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
   const { users } = useStore();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
-    data: { task },
   });
 
   const assignee = users.find(u => u.id === task.assigneeId);
@@ -252,6 +251,7 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
 
   // Отслеживаем был ли drag для предотвращения клика после перетаскивания
   const wasDraggingRef = useRef(false);
+  const dragStartTimeRef = useRef<number>(0);
   
   useEffect(() => {
     if (isDragging) {
@@ -259,13 +259,20 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
     }
   }, [isDragging]);
 
+  const handlePointerDown = () => {
+    dragStartTimeRef.current = Date.now();
+  };
+
   const handleClick = () => {
-    // Не открывать модалку если был drag
-    if (!wasDraggingRef.current) {
-      onClick();
+    const timeSincePointerDown = Date.now() - dragStartTimeRef.current;
+    
+    // Если было перетаскивание или удержание дольше 200мс, не открываем модалку
+    if (wasDraggingRef.current || timeSincePointerDown > 200) {
+      wasDraggingRef.current = false;
+      return;
     }
-    // Сбрасываем флаг после клика
-    wasDraggingRef.current = false;
+    
+    onClick();
   };
 
   const deadlineBadge = () => {
@@ -296,6 +303,7 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
       {...attributes}
       {...listeners}
       onClick={handleClick}
+      onPointerDown={handlePointerDown}
       className={`bg-white rounded-lg p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all ${
         isDragging ? 'opacity-50 shadow-lg' : ''
       } ${deadlineStatus === 'overdue' ? 'border-l-4 border-l-red-400' : deadlineStatus === 'due_soon' ? 'border-l-4 border-l-amber-400' : ''}`}
@@ -345,12 +353,12 @@ export default function BoardPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [addingToColumn, setAddingToColumn] = useState<TaskStatus | null>(null);
 
-  // Сенсор для drag-and-drop с задержкой 700мс
+  // Сенсор для drag-and-drop с задержкой 250мс
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        delay: 700,
-        tolerance: 5,
+        delay: 250,
+        tolerance: 8,
       },
     })
   );
@@ -388,15 +396,19 @@ export default function BoardPage() {
     
     // Проверяем, что over.id является валидным статусом колонки
     const validStatuses = STATUS_COLUMNS.map(col => col.id);
+    
+    // Если over.id не является статусом колонки, игнорируем
     if (!validStatuses.includes(overId as TaskStatus)) {
-      return; // Не валидный статус, игнорируем
+      return;
     }
     
     const newStatus = overId as TaskStatus;
     const task = projectTasks.find(t => t.id === taskId);
     
+    if (!task) return;
+    
     // Если задача уже в этой колонке, не делаем ничего
-    if (task && task.status === newStatus) {
+    if (task.status === newStatus) {
       return;
     }
     

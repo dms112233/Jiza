@@ -48,11 +48,12 @@ export default function TaskModal({ task, project, onClose }: Props) {
     }
   };
 
-  const handleDelete = () => {
-    if (confirm('Удалить задачу?')) {
-      deleteTask(task.id);
-      onClose();
-    }
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!task?.id) return;
+    deleteTask(task.id);
+    onClose();
   };
 
   const handleAddLabel = () => {
