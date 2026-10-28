@@ -26,20 +26,21 @@ type Project struct {
 }
 
 type Task struct {
-	ID           string    `json:"id"`
-	ProjectID    string    `json:"projectId"`
-	Title        string    `json:"title"`
-	Description  string    `json:"description"`
-	Status       string    `json:"status"`
-	Priority     string    `json:"priority"`
-	Type         string    `json:"type"`
-	AssigneeID   *string   `json:"assigneeId"`
-	ReporterID   string    `json:"reporterId"`
-	StoryPoints  int       `json:"storyPoints"`
-	Labels       []string  `json:"labels"`
-	Order        int       `json:"order"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	ID           string     `json:"id"`
+	ProjectID    string     `json:"projectId"`
+	Title        string     `json:"title"`
+	Description  string     `json:"description"`
+	Status       string     `json:"status"`
+	Priority     string     `json:"priority"`
+	Type         string     `json:"type"`
+	AssigneeID   *string    `json:"assigneeId"`
+	ReporterID   string     `json:"reporterId"`
+	Deadline     *time.Time `json:"deadline"`
+	StartDate    *time.Time `json:"startDate"`
+	Labels       []string   `json:"labels"`
+	Order        int        `json:"order"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
 }
 
 type Comment struct {
@@ -81,23 +82,28 @@ type UpdateProjectRequest struct {
 }
 
 type CreateTaskRequest struct {
-	ProjectID   string `json:"projectId" binding:"required"`
-	Title       string `json:"title" binding:"required,min=1"`
-	Type        string `json:"type" binding:"omitempty,oneof=story bug task epic"`
-	Priority    string `json:"priority" binding:"omitempty,oneof=lowest low medium high highest"`
-	Status      string `json:"status" binding:"omitempty,oneof=backlog todo in_progress review done"`
-	Description string `json:"description"`
+	ProjectID   string     `json:"projectId" binding:"required"`
+	Title       string     `json:"title" binding:"required,min=1"`
+	Type        string     `json:"type" binding:"omitempty,oneof=story bug task epic"`
+	Priority    string     `json:"priority" binding:"omitempty,oneof=lowest low medium high highest"`
+	Status      string     `json:"status" binding:"omitempty,oneof=backlog todo in_progress review done"`
+	Description string     `json:"description"`
+	Deadline    *time.Time `json:"deadline"`
+	StartDate   *time.Time `json:"startDate"`
+	AssigneeID  *string    `json:"assigneeId"`
+	Labels      []string   `json:"labels"`
 }
 
 type UpdateTaskRequest struct {
-	Title       *string  `json:"title"`
-	Description *string  `json:"description"`
-	Status      *string  `json:"status" binding:"omitempty,oneof=backlog todo in_progress review done"`
-	Priority    *string  `json:"priority" binding:"omitempty,oneof=lowest low medium high highest"`
-	Type        *string  `json:"type" binding:"omitempty,oneof=story bug task epic"`
-	AssigneeID  *string  `json:"assigneeId"`
-	StoryPoints *int     `json:"storyPoints"`
-	Labels      []string `json:"labels"`
+	Title       *string    `json:"title"`
+	Description *string    `json:"description"`
+	Status      *string    `json:"status" binding:"omitempty,oneof=backlog todo in_progress review done"`
+	Priority    *string    `json:"priority" binding:"omitempty,oneof=lowest low medium high highest"`
+	Type        *string    `json:"type" binding:"omitempty,oneof=story bug task epic"`
+	AssigneeID  *string    `json:"assigneeId"`
+	Deadline    *time.Time `json:"deadline"`
+	StartDate   *time.Time `json:"startDate"`
+	Labels      []string   `json:"labels"`
 }
 
 type MoveTaskRequest struct {

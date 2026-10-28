@@ -32,7 +32,8 @@ export interface Task {
   type: TaskType;
   assigneeId: string | null;
   reporterId: string;
-  storyPoints: number;
+  deadline: string | null;
+  startDate: string | null;
   labels: string[];
   createdAt: string;
   updatedAt: string;
@@ -69,3 +70,26 @@ export const TYPE_ICONS: Record<TaskType, string> = {
   task: '✅',
   epic: '⚡',
 };
+
+export type DeadlineStatus = 'overdue' | 'due_soon' | 'normal' | 'none';
+
+export function getDeadlineStatus(deadline: string | null): DeadlineStatus {
+  if (!deadline) return 'none';
+  
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const deadlineDate = new Date(deadline);
+  deadlineDate.setHours(0, 0, 0, 0);
+  
+  const diffTime = deadlineDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) return 'overdue';
+  if (diffDays <= 2) return 'due_soon';
+  return 'normal';
+}
+
+export function formatDeadline(deadline: string): string {
+  const date = new Date(deadline);
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+}

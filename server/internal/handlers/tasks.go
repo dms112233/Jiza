@@ -23,7 +23,7 @@ func (h *TaskHandler) GetByProject(c *gin.Context) {
 
 	rows, err := h.DB.Query(
 		`SELECT id, project_id, title, description, status, priority, type, 
-		 assignee_id, reporter_id, story_points, labels, position_order, created_at, updated_at
+		 assignee_id, reporter_id, deadline, start_date, labels, position_order, created_at, updated_at
 		 FROM tasks WHERE project_id = $1
 		 ORDER BY position_order ASC`,
 		projectID,
@@ -39,7 +39,7 @@ func (h *TaskHandler) GetByProject(c *gin.Context) {
 		var t models.Task
 		if err := rows.Scan(
 			&t.ID, &t.ProjectID, &t.Title, &t.Description, &t.Status, &t.Priority,
-			&t.Type, &t.AssigneeID, &t.ReporterID, &t.StoryPoints, pq.Array(&t.Labels),
+			&t.Type, &t.AssigneeID, &t.ReporterID, &t.Deadline, &t.StartDate, pq.Array(&t.Labels),
 			&t.Order, &t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			continue
@@ -60,12 +60,12 @@ func (h *TaskHandler) GetByID(c *gin.Context) {
 	var t models.Task
 	err := h.DB.QueryRow(
 		`SELECT id, project_id, title, description, status, priority, type,
-		 assignee_id, reporter_id, story_points, labels, position_order, created_at, updated_at
+		 assignee_id, reporter_id, deadline, start_date, labels, position_order, created_at, updated_at
 		 FROM tasks WHERE id = $1`,
 		taskID,
 	).Scan(
 		&t.ID, &t.ProjectID, &t.Title, &t.Description, &t.Status, &t.Priority,
-		&t.Type, &t.AssigneeID, &t.ReporterID, &t.StoryPoints, pq.Array(&t.Labels),
+		&t.Type, &t.AssigneeID, &t.ReporterID, &t.Deadline, &t.StartDate, pq.Array(&t.Labels),
 		&t.Order, &t.CreatedAt, &t.UpdatedAt,
 	)
 
@@ -113,14 +113,14 @@ func (h *TaskHandler) Create(c *gin.Context) {
 
 	var t models.Task
 	err := h.DB.QueryRow(
-		`INSERT INTO tasks (id, project_id, title, description, status, type, priority, reporter_id, position_order)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		`INSERT INTO tasks (id, project_id, title, description, status, type, priority, reporter_id, deadline, start_date, assignee_id, labels, position_order)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		 RETURNING id, project_id, title, description, status, priority, type,
-		 assignee_id, reporter_id, story_points, labels, position_order, created_at, updated_at`,
-		taskID, req.ProjectID, req.Title, req.Description, status, taskType, priority, userID, maxOrder+1,
+		 assignee_id, reporter_id, deadline, start_date, labels, position_order, created_at, updated_at`,
+		taskID, req.ProjectID, req.Title, req.Description, status, taskType, priority, userID, req.Deadline, req.StartDate, req.AssigneeID, pq.Array(req.Labels), maxOrder+1,
 	).Scan(
 		&t.ID, &t.ProjectID, &t.Title, &t.Description, &t.Status, &t.Priority,
-		&t.Type, &t.AssigneeID, &t.ReporterID, &t.StoryPoints, pq.Array(&t.Labels),
+		&t.Type, &t.AssigneeID, &t.ReporterID, &t.Deadline, &t.StartDate, pq.Array(&t.Labels),
 		&t.Order, &t.CreatedAt, &t.UpdatedAt,
 	)
 
@@ -180,9 +180,14 @@ func (h *TaskHandler) Update(c *gin.Context) {
 			argNum++
 		}
 	}
-	if req.StoryPoints != nil {
-		sets = append(sets, "story_points = $"+itoa(argNum))
-		args = append(args, *req.StoryPoints)
+	if req.Deadline != nil {
+		sets = append(sets, "deadline = $"+itoa(argNum))
+		args = append(args, *req.Deadline)
+		argNum++
+	}
+	if req.StartDate != nil {
+		sets = append(sets, "start_date = $"+itoa(argNum))
+		args = append(args, *req.StartDate)
 		argNum++
 	}
 	if req.Labels != nil {
@@ -210,12 +215,12 @@ func (h *TaskHandler) Update(c *gin.Context) {
 	var t models.Task
 	h.DB.QueryRow(
 		`SELECT id, project_id, title, description, status, priority, type,
-		 assignee_id, reporter_id, story_points, labels, position_order, created_at, updated_at
+		 assignee_id, reporter_id, deadline, start_date, labels, position_order, created_at, updated_at
 		 FROM tasks WHERE id = $1`,
 		taskID,
 	).Scan(
 		&t.ID, &t.ProjectID, &t.Title, &t.Description, &t.Status, &t.Priority,
-		&t.Type, &t.AssigneeID, &t.ReporterID, &t.StoryPoints, pq.Array(&t.Labels),
+		&t.Type, &t.AssigneeID, &t.ReporterID, &t.Deadline, &t.StartDate, pq.Array(&t.Labels),
 		&t.Order, &t.CreatedAt, &t.UpdatedAt,
 	)
 

@@ -15,21 +15,27 @@ const demoProjects: Project[] = [
   { id: 'p3', name: 'API Gateway', key: 'AG', description: 'API шлюз для микросервисной архитектуры', ownerId: 'u2', members: ['u1', 'u2'], createdAt: '2024-03-01', color: '#FF5630' },
 ];
 
+const today = new Date();
+const inTwoDays = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+const yesterday = new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+const inWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+const inMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
 const demoTasks: Task[] = [
-  { id: 't1', projectId: 'p1', title: 'Настроить CI/CD пайплайн', description: 'Настроить автоматическую сборку и деплой через GitHub Actions', status: 'done', priority: 'high', type: 'task', assigneeId: 'u2', reporterId: 'u1', storyPoints: 5, labels: ['devops'], createdAt: '2024-01-15', updatedAt: '2024-01-20', order: 0 },
-  { id: 't2', projectId: 'p1', title: 'Дизайн Kanban доски', description: 'Создать макет Kanban доски в Figma', status: 'done', priority: 'medium', type: 'story', assigneeId: 'u3', reporterId: 'u1', storyPoints: 8, labels: ['design', 'ui'], createdAt: '2024-01-10', updatedAt: '2024-01-18', order: 1 },
-  { id: 't3', projectId: 'p1', title: 'Реализовать drag & drop', description: 'Добавить перетаскивание задач между колонками', status: 'in_progress', priority: 'high', type: 'task', assigneeId: 'u2', reporterId: 'u1', storyPoints: 13, labels: ['frontend'], createdAt: '2024-02-01', updatedAt: '2024-02-05', order: 0 },
-  { id: 't4', projectId: 'p1', title: 'Авторизация пользователей', description: 'JWT токены, refresh tokens, middleware', status: 'in_progress', priority: 'highest', type: 'story', assigneeId: 'u2', reporterId: 'u1', storyPoints: 8, labels: ['backend', 'security'], createdAt: '2024-02-03', updatedAt: '2024-02-07', order: 1 },
-  { id: 't5', projectId: 'p1', title: 'REST API для проектов', description: 'CRUD операции для проектов и задач', status: 'review', priority: 'high', type: 'task', assigneeId: 'u2', reporterId: 'u1', storyPoints: 5, labels: ['backend'], createdAt: '2024-02-05', updatedAt: '2024-02-10', order: 0 },
-  { id: 't6', projectId: 'p1', title: 'Интеграция с PostgreSQL', description: 'Настроить подключение к БД, миграции', status: 'todo', priority: 'highest', type: 'task', assigneeId: 'u2', reporterId: 'u1', storyPoints: 3, labels: ['backend', 'database'], createdAt: '2024-02-08', updatedAt: '2024-02-08', order: 0 },
-  { id: 't7', projectId: 'p1', title: 'Оптимизация запросов', description: 'Добавить индексы и оптимизировать медленные запросы', status: 'backlog', priority: 'low', type: 'task', assigneeId: null, reporterId: 'u1', storyPoints: 5, labels: ['performance'], createdAt: '2024-02-10', updatedAt: '2024-02-10', order: 0 },
-  { id: 't8', projectId: 'p1', title: 'Кнопка не работает на Safari', description: 'При нажатии на кнопку "Создать задачу" в Safari ничего не происходит', status: 'todo', priority: 'high', type: 'bug', assigneeId: 'u3', reporterId: 'u4', storyPoints: 2, labels: ['bug', 'frontend'], createdAt: '2024-02-12', updatedAt: '2024-02-12', order: 1 },
-  { id: 't9', projectId: 'p1', title: 'Добавить тёмную тему', description: 'Реализовать переключение между светлой и тёмной темой', status: 'backlog', priority: 'medium', type: 'story', assigneeId: null, reporterId: 'u3', storyPoints: 8, labels: ['ui', 'frontend'], createdAt: '2024-02-15', updatedAt: '2024-02-15', order: 1 },
-  { id: 't10', projectId: 'p1', title: 'Написать документацию API', description: 'Swagger/OpenAPI спецификация для всех эндпоинтов', status: 'backlog', priority: 'medium', type: 'task', assigneeId: null, reporterId: 'u1', storyPoints: 5, labels: ['docs'], createdAt: '2024-02-18', updatedAt: '2024-02-18', order: 2 },
+  { id: 't1', projectId: 'p1', title: 'Настроить CI/CD пайплайн', description: 'Настроить автоматическую сборку и деплой через GitHub Actions', status: 'done', priority: 'high', type: 'task', assigneeId: 'u2', reporterId: 'u1', deadline: null, startDate: '2024-01-15', labels: ['devops'], createdAt: '2024-01-15', updatedAt: '2024-01-20', order: 0 },
+  { id: 't2', projectId: 'p1', title: 'Дизайн Kanban доски', description: 'Создать макет Kanban доски в Figma', status: 'done', priority: 'medium', type: 'story', assigneeId: 'u3', reporterId: 'u1', deadline: null, startDate: '2024-01-10', labels: ['design', 'ui'], createdAt: '2024-01-10', updatedAt: '2024-01-18', order: 1 },
+  { id: 't3', projectId: 'p1', title: 'Реализовать drag & drop', description: 'Добавить перетаскивание задач между колонками', status: 'in_progress', priority: 'high', type: 'task', assigneeId: 'u2', reporterId: 'u1', deadline: inTwoDays, startDate: '2024-02-01', labels: ['frontend'], createdAt: '2024-02-01', updatedAt: '2024-02-05', order: 0 },
+  { id: 't4', projectId: 'p1', title: 'Авторизация пользователей', description: 'JWT токены, refresh tokens, middleware', status: 'in_progress', priority: 'highest', type: 'story', assigneeId: 'u2', reporterId: 'u1', deadline: yesterday, startDate: '2024-02-03', labels: ['backend', 'security'], createdAt: '2024-02-03', updatedAt: '2024-02-07', order: 1 },
+  { id: 't5', projectId: 'p1', title: 'REST API для проектов', description: 'CRUD операции для проектов и задач', status: 'review', priority: 'high', type: 'task', assigneeId: 'u2', reporterId: 'u1', deadline: inWeek, startDate: '2024-02-05', labels: ['backend'], createdAt: '2024-02-05', updatedAt: '2024-02-10', order: 0 },
+  { id: 't6', projectId: 'p1', title: 'Интеграция с PostgreSQL', description: 'Настроить подключение к БД, миграции', status: 'todo', priority: 'highest', type: 'task', assigneeId: 'u2', reporterId: 'u1', deadline: inMonth, startDate: '2024-02-08', labels: ['backend', 'database'], createdAt: '2024-02-08', updatedAt: '2024-02-08', order: 0 },
+  { id: 't7', projectId: 'p1', title: 'Оптимизация запросов', description: 'Добавить индексы и оптимизировать медленные запросы', status: 'backlog', priority: 'low', type: 'task', assigneeId: null, reporterId: 'u1', deadline: null, startDate: null, labels: ['performance'], createdAt: '2024-02-10', updatedAt: '2024-02-10', order: 0 },
+  { id: 't8', projectId: 'p1', title: 'Кнопка не работает на Safari', description: 'При нажатии на кнопку "Создать задачу" в Safari ничего не происходит', status: 'todo', priority: 'high', type: 'bug', assigneeId: 'u3', reporterId: 'u4', deadline: inTwoDays, startDate: '2024-02-12', labels: ['bug', 'frontend'], createdAt: '2024-02-12', updatedAt: '2024-02-12', order: 1 },
+  { id: 't9', projectId: 'p1', title: 'Добавить тёмную тему', description: 'Реализовать переключение между светлой и тёмной темой', status: 'backlog', priority: 'medium', type: 'story', assigneeId: null, reporterId: 'u3', deadline: null, startDate: null, labels: ['ui', 'frontend'], createdAt: '2024-02-15', updatedAt: '2024-02-15', order: 1 },
+  { id: 't10', projectId: 'p1', title: 'Написать документацию API', description: 'Swagger/OpenAPI спецификация для всех эндпоинтов', status: 'backlog', priority: 'medium', type: 'task', assigneeId: null, reporterId: 'u1', deadline: null, startDate: null, labels: ['docs'], createdAt: '2024-02-18', updatedAt: '2024-02-18', order: 2 },
   // Mobile App tasks
-  { id: 't11', projectId: 'p2', title: 'Дизайн мобильного UI', description: 'Создать дизайн экранов мобильного приложения', status: 'in_progress', priority: 'high', type: 'story', assigneeId: 'u3', reporterId: 'u1', storyPoints: 13, labels: ['design', 'mobile'], createdAt: '2024-02-01', updatedAt: '2024-02-10', order: 0 },
-  { id: 't12', projectId: 'p2', title: 'Настроить React Native', description: 'Инициализировать проект и настроить навигацию', status: 'done', priority: 'medium', type: 'task', assigneeId: 'u2', reporterId: 'u1', storyPoints: 5, labels: ['mobile'], createdAt: '2024-02-01', updatedAt: '2024-02-03', order: 0 },
-  { id: 't13', projectId: 'p2', title: 'Push уведомления', description: 'Интеграция с Firebase Cloud Messaging', status: 'todo', priority: 'high', type: 'task', assigneeId: 'u2', reporterId: 'u1', storyPoints: 8, labels: ['mobile', 'backend'], createdAt: '2024-02-10', updatedAt: '2024-02-10', order: 0 },
+  { id: 't11', projectId: 'p2', title: 'Дизайн мобильного UI', description: 'Создать дизайн экранов мобильного приложения', status: 'in_progress', priority: 'high', type: 'story', assigneeId: 'u3', reporterId: 'u1', deadline: inWeek, startDate: '2024-02-01', labels: ['design', 'mobile'], createdAt: '2024-02-01', updatedAt: '2024-02-10', order: 0 },
+  { id: 't12', projectId: 'p2', title: 'Настроить React Native', description: 'Инициализировать проект и настроить навигацию', status: 'done', priority: 'medium', type: 'task', assigneeId: 'u2', reporterId: 'u1', deadline: null, startDate: '2024-02-01', labels: ['mobile'], createdAt: '2024-02-01', updatedAt: '2024-02-03', order: 0 },
+  { id: 't13', projectId: 'p2', title: 'Push уведомления', description: 'Интеграция с Firebase Cloud Messaging', status: 'todo', priority: 'high', type: 'task', assigneeId: 'u2', reporterId: 'u1', deadline: inMonth, startDate: '2024-02-10', labels: ['mobile', 'backend'], createdAt: '2024-02-10', updatedAt: '2024-02-10', order: 0 },
 ];
 
 const demoComments: Comment[] = [
@@ -163,20 +169,28 @@ export const store = {
   },
 
   // Tasks
-  createTask: (projectId: string, title: string, type: Task['type'], priority: Task['priority'], status: TaskStatus = 'backlog') => {
+  createTask: (
+    projectId: string,
+    title: string,
+    type: Task['type'],
+    priority: Task['priority'],
+    status: TaskStatus = 'backlog',
+    options: { deadline?: string | null; startDate?: string | null; assigneeId?: string | null; labels?: string[]; description?: string } = {}
+  ) => {
     const projectTasks = state.tasks.filter(t => t.projectId === projectId && t.status === status);
     const task: Task = {
       id: uuidv4(),
       projectId,
       title,
-      description: '',
+      description: options.description || '',
       status,
       priority,
       type,
-      assigneeId: null,
+      assigneeId: options.assigneeId || null,
       reporterId: state.currentUser!.id,
-      storyPoints: 0,
-      labels: [],
+      deadline: options.deadline || null,
+      startDate: options.startDate || new Date().toISOString().split('T')[0],
+      labels: options.labels || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       order: projectTasks.length,

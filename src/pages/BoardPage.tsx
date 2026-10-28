@@ -9,7 +9,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { useStore } from '../hooks/useStore';
-import { STATUS_COLUMNS, PRIORITY_COLORS, TYPE_ICONS, type Task, type TaskStatus, type TaskType, type TaskPriority } from '../types';
+import { STATUS_COLUMNS, PRIORITY_COLORS, TYPE_ICONS, getDeadlineStatus, formatDeadline, type Task, type TaskStatus, type TaskType, type TaskPriority } from '../types';
 import TaskModal from '../components/TaskModal';
 
 function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
@@ -33,20 +33,49 @@ function InlineTaskForm({
 }: {
   status: TaskStatus;
   onClose: () => void;
-  onCreate: (title: string, type: TaskType, priority: TaskPriority) => void;
+  onCreate: (title: string, type: TaskType, priority: TaskPriority, deadline: string | null, startDate: string | null, assigneeId: string | null, labels: string[]) => void;
 }) {
+  const { users, projects } = useStore();
+  const { projectId } = useParams<{ projectId: string }>();
+  const project = projects.find(p => p.id === projectId);
+  const projectMembers = project ? users.filter(u => project.members.includes(u.id)) : [];
+
   const [title, setTitle] = useState('');
   const [type, setType] = useState<TaskType>('task');
   const [priority, setPriority] = useState<TaskPriority>('medium');
+  const [deadline, setDeadline] = useState('');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [assigneeId, setAssigneeId] = useState('');
+  const [labelInput, setLabelInput] = useState('');
+  const [labels, setLabels] = useState<string[]>([]);
   const [showOptions, setShowOptions] = useState(false);
+
+  const handleAddLabel = () => {
+    if (labelInput.trim() && !labels.includes(labelInput.trim())) {
+      setLabels([...labels, labelInput.trim()]);
+      setLabelInput('');
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim()) {
-      onCreate(title.trim(), type, priority);
+      onCreate(
+        title.trim(),
+        type,
+        priority,
+        deadline || null,
+        startDate || null,
+        assigneeId || null,
+        labels
+      );
       setTitle('');
       setType('task');
       setPriority('medium');
+      setDeadline('');
+      setStartDate(new Date().toISOString().split('T')[0]);
+      setAssigneeId('');
+      setLabels([]);
       setShowOptions(false);
     }
   };
@@ -69,28 +98,98 @@ function InlineTaskForm({
       />
 
       {showOptions && (
-        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100">
+        <div className="space-y-2 mb-2 pb-2 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <select
+              value={type}
+              onChange={e => setType(e.target.value as TaskType)}
+              className="text-xs px-2 py-1 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white"
+            >
+              <option value="task">✅ Задача</option>
+              <option value="story">📗 История</option>
+              <option value="bug">🐛 Баг</option>
+              <option value="epic">⚡ Эпик</option>
+            </select>
+            <select
+              value={priority}
+              onChange={e => setPriority(e.target.value as TaskPriority)}
+              className="text-xs px-2 py-1 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white"
+            >
+              <option value="lowest">🔽 Низший</option>
+              <option value="low">⬇️ Низкий</option>
+              <option value="medium">➡️ Средний</option>
+              <option value="high">⬆️ Высокий</option>
+              <option value="highest">🔼 Критический</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={deadline}
+              onChange={e => setDeadline(e.target.value)}
+              className="text-xs px-2 py-1 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 outline-none flex-1"
+              placeholder="Дедлайн"
+            />
+            <input
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="text-xs px-2 py-1 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 outline-none flex-1"
+              placeholder="Дата начала"
+            />
+          </div>
+
           <select
-            value={type}
-            onChange={e => setType(e.target.value as TaskType)}
-            className="text-xs px-2 py-1 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white"
+            value={assigneeId}
+            onChange={e => setAssigneeId(e.target.value)}
+            className="text-xs px-2 py-1 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white w-full"
           >
-            <option value="task">✅ Задача</option>
-            <option value="story">📗 История</option>
-            <option value="bug">🐛 Баг</option>
-            <option value="epic">⚡ Эпик</option>
+            <option value="">Исполнитель не назначен</option>
+            {projectMembers.map(u => (
+              <option key={u.id} value={u.id}>{u.avatar} {u.name}</option>
+            ))}
           </select>
-          <select
-            value={priority}
-            onChange={e => setPriority(e.target.value as TaskPriority)}
-            className="text-xs px-2 py-1 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white"
-          >
-            <option value="lowest">🔽 Низший</option>
-            <option value="low">⬇️ Низкий</option>
-            <option value="medium">➡️ Средний</option>
-            <option value="high">⬆️ Высокий</option>
-            <option value="highest">🔼 Критический</option>
-          </select>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={labelInput}
+              onChange={e => setLabelInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddLabel();
+                }
+              }}
+              placeholder="Добавить тег..."
+              className="text-xs px-2 py-1 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 outline-none flex-1"
+            />
+            <button
+              type="button"
+              onClick={handleAddLabel}
+              className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition"
+            >
+              +
+            </button>
+          </div>
+
+          {labels.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {labels.map(label => (
+                <span key={label} className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full flex items-center gap-1">
+                  #{label}
+                  <button
+                    type="button"
+                    onClick={() => setLabels(labels.filter(l => l !== label))}
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -125,10 +224,36 @@ function InlineTaskForm({
 }
 
 function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
+  const { users } = useStore();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
     data: { task },
   });
+
+  const assignee = users.find(u => u.id === task.assigneeId);
+  const deadlineStatus = getDeadlineStatus(task.deadline);
+
+  const deadlineBadge = () => {
+    if (!task.deadline) return null;
+    const colors = {
+      overdue: 'bg-red-100 text-red-700',
+      due_soon: 'bg-amber-100 text-amber-700',
+      normal: 'bg-gray-100 text-gray-600',
+      none: '',
+    };
+    const icons = {
+      overdue: '⚠️',
+      due_soon: '⏰',
+      normal: '📅',
+      none: '',
+    };
+    return (
+      <span className={`text-xs px-1.5 py-0.5 rounded ${colors[deadlineStatus]} flex items-center gap-1`}>
+        <span>{icons[deadlineStatus]}</span>
+        <span>{formatDeadline(task.deadline)}</span>
+      </span>
+    );
+  };
 
   return (
     <div
@@ -138,7 +263,7 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
       onClick={onClick}
       className={`bg-white rounded-lg p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all group ${
         isDragging ? 'opacity-50 shadow-lg' : ''
-      }`}
+      } ${deadlineStatus === 'overdue' ? 'border-l-4 border-l-red-400' : deadlineStatus === 'due_soon' ? 'border-l-4 border-l-amber-400' : ''}`}
     >
       <div className="flex items-start gap-2 mb-2">
         <span className="text-sm">{TYPE_ICONS[task.type]}</span>
@@ -160,15 +285,11 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
             style={{ backgroundColor: PRIORITY_COLORS[task.priority] }}
             title={task.priority}
           ></div>
-          {task.storyPoints > 0 && (
-            <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-              {task.storyPoints} SP
-            </span>
-          )}
+          {deadlineBadge()}
         </div>
-        {task.assigneeId && (
-          <span className="text-sm" title="Assignee">
-            👤
+        {assignee && (
+          <span className="text-sm" title={assignee.name}>
+            {assignee.avatar}
           </span>
         )}
       </div>
@@ -294,8 +415,13 @@ export default function BoardPage() {
                         <InlineTaskForm
                           status={column.id}
                           onClose={() => setAddingToColumn(null)}
-                          onCreate={(title, type, priority) => {
-                            createTask(project!.id, title, type, priority, column.id);
+                          onCreate={(title, type, priority, deadline, startDate, assigneeId, labels) => {
+                            createTask(project!.id, title, type, priority, column.id, {
+                              deadline,
+                              startDate,
+                              assigneeId,
+                              labels,
+                            });
                           }}
                         />
                       )}
@@ -326,7 +452,9 @@ export default function BoardPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PRIORITY_COLORS[activeTask.priority] }}></div>
-                  <span className="text-xs text-gray-400">{activeTask.storyPoints} SP</span>
+                  {activeTask.deadline && (
+                    <span className="text-xs text-gray-500">📅 {formatDeadline(activeTask.deadline)}</span>
+                  )}
                 </div>
               </div>
             ) : null}

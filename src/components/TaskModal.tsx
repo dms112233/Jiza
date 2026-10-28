@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../hooks/useStore';
-import { STATUS_COLUMNS, PRIORITY_COLORS, TYPE_ICONS, type Task, type Project, type TaskStatus, type TaskPriority, type TaskType } from '../types';
+import { STATUS_COLUMNS, PRIORITY_COLORS, TYPE_ICONS, getDeadlineStatus, formatDeadline, type Task, type Project, type TaskStatus, type TaskPriority, type TaskType } from '../types';
 
 interface Props {
   task: Task;
@@ -19,6 +19,7 @@ export default function TaskModal({ task, project, onClose }: Props) {
   const reporter = users.find(u => u.id === task.reporterId);
   const taskComments = comments.filter(c => c.taskId === task.id);
   const projectMembers = users.filter(u => project.members.includes(u.id));
+  const deadlineStatus = getDeadlineStatus(task.deadline);
 
   const handleSave = () => {
     updateTask(task.id, { title, description });
@@ -39,6 +40,35 @@ export default function TaskModal({ task, project, onClose }: Props) {
     }
   };
 
+  const deadlineBadge = () => {
+    if (!task.deadline) return null;
+    const colors = {
+      overdue: 'bg-red-100 text-red-700 border-red-200',
+      due_soon: 'bg-amber-100 text-amber-700 border-amber-200',
+      normal: 'bg-gray-100 text-gray-600 border-gray-200',
+      none: '',
+    };
+    const icons = {
+      overdue: '⚠️',
+      due_soon: '⏰',
+      normal: '📅',
+      none: '',
+    };
+    const labels = {
+      overdue: 'Просрочено',
+      due_soon: 'Скоро истекает',
+      normal: '',
+      none: '',
+    };
+    return (
+      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${colors[deadlineStatus]}`}>
+        <span>{icons[deadlineStatus]}</span>
+        <span>{formatDeadline(task.deadline)}</span>
+        {labels[deadlineStatus] && <span>• {labels[deadlineStatus]}</span>}
+      </span>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
@@ -46,9 +76,9 @@ export default function TaskModal({ task, project, onClose }: Props) {
         {/* Header */}
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1">
               <span className="text-xl">{TYPE_ICONS[task.type]}</span>
-              <div>
+              <div className="flex-1">
                 <p className="text-xs text-gray-400 font-mono">{project.key}-{task.id.slice(0, 4).toUpperCase()}</p>
                 {editing ? (
                   <input
@@ -61,7 +91,7 @@ export default function TaskModal({ task, project, onClose }: Props) {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-3">
               <button onClick={() => setEditing(!editing)} className="p-2 text-gray-400 hover:text-gray-600 transition">
                 <i className={`fas ${editing ? 'fa-save' : 'fa-edit'}`}></i>
               </button>
@@ -101,6 +131,20 @@ export default function TaskModal({ task, project, onClose }: Props) {
                   </p>
                 )}
               </div>
+
+              {/* Labels */}
+              {task.labels.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Теги</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {task.labels.map(label => (
+                      <span key={label} className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
+                        #{label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Comments */}
               <div>
@@ -202,15 +246,39 @@ export default function TaskModal({ task, project, onClose }: Props) {
                 </select>
               </div>
 
-              {/* Story Points */}
+              {/* Deadline */}
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase">Story Points</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase">Дедлайн</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="date"
+                    value={task.deadline || ''}
+                    onChange={e => updateTask(task.id, { deadline: e.target.value || null })}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                  {task.deadline && (
+                    <button
+                      onClick={() => updateTask(task.id, { deadline: null })}
+                      className="p-2 text-gray-400 hover:text-red-500 transition"
+                      title="Убрать дедлайн"
+                    >
+                      <i className="fas fa-times text-xs"></i>
+                    </button>
+                  )}
+                </div>
+                {task.deadline && (
+                  <div className="mt-1">{deadlineBadge()}</div>
+                )}
+              </div>
+
+              {/* Start Date */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase">Дата постановки</label>
                 <input
-                  type="number"
-                  value={task.storyPoints}
-                  onChange={e => updateTask(task.id, { storyPoints: parseInt(e.target.value) || 0 })}
+                  type="date"
+                  value={task.startDate || ''}
+                  onChange={e => updateTask(task.id, { startDate: e.target.value || null })}
                   className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  min={0}
                 />
               </div>
 

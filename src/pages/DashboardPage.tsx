@@ -96,7 +96,10 @@ export default function DashboardPage() {
                       <span>{task.type === 'bug' ? '🐛' : task.type === 'story' ? '📗' : task.type === 'epic' ? '⚡' : '✅'}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-800 truncate">{task.title}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{project?.key} • {task.storyPoints} SP</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {project?.key}
+                          {task.deadline && ` • 📅 ${new Date(task.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`}
+                        </p>
                       </div>
                     </button>
                   );
@@ -126,7 +129,10 @@ export default function DashboardPage() {
                       <span>{task.type === 'bug' ? '🐛' : task.type === 'story' ? '📗' : task.type === 'epic' ? '⚡' : '✅'}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-800 truncate">{task.title}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{project?.key} • {task.storyPoints} SP</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {project?.key}
+                          {task.deadline && ` • 📅 ${new Date(task.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`}
+                        </p>
                       </div>
                     </button>
                   );
