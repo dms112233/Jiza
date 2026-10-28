@@ -163,14 +163,14 @@ export const store = {
   },
 
   // Tasks
-  createTask: (projectId: string, title: string, type: Task['type'], priority: Task['priority']) => {
-    const projectTasks = state.tasks.filter(t => t.projectId === projectId && t.status === 'backlog');
+  createTask: (projectId: string, title: string, type: Task['type'], priority: Task['priority'], status: TaskStatus = 'backlog') => {
+    const projectTasks = state.tasks.filter(t => t.projectId === projectId && t.status === status);
     const task: Task = {
       id: uuidv4(),
       projectId,
       title,
       description: '',
-      status: 'backlog',
+      status,
       priority,
       type,
       assigneeId: null,

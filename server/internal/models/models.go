@@ -85,6 +85,7 @@ type CreateTaskRequest struct {
 	Title       string `json:"title" binding:"required,min=1"`
 	Type        string `json:"type" binding:"omitempty,oneof=story bug task epic"`
 	Priority    string `json:"priority" binding:"omitempty,oneof=lowest low medium high highest"`
+	Status      string `json:"status" binding:"omitempty,oneof=backlog todo in_progress review done"`
 	Description string `json:"description"`
 }
 

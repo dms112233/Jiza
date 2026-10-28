@@ -9,7 +9,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { useStore } from '../hooks/useStore';
-import { STATUS_COLUMNS, PRIORITY_COLORS, TYPE_ICONS, type Task, type TaskStatus } from '../types';
+import { STATUS_COLUMNS, PRIORITY_COLORS, TYPE_ICONS, type Task, type TaskStatus, type TaskType, type TaskPriority } from '../types';
 import TaskModal from '../components/TaskModal';
 
 function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
@@ -23,6 +23,104 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
     >
       {children}
     </div>
+  );
+}
+
+function InlineTaskForm({
+  status,
+  onClose,
+  onCreate,
+}: {
+  status: TaskStatus;
+  onClose: () => void;
+  onCreate: (title: string, type: TaskType, priority: TaskPriority) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [type, setType] = useState<TaskType>('task');
+  const [priority, setPriority] = useState<TaskPriority>('medium');
+  const [showOptions, setShowOptions] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (title.trim()) {
+      onCreate(title.trim(), type, priority);
+      setTitle('');
+      setType('task');
+      setPriority('medium');
+      setShowOptions(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white rounded-lg p-3 shadow-md border border-blue-200 animate-in fade-in"
+      onClick={e => e.stopPropagation()}
+    >
+      <input
+        autoFocus
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Escape') onClose();
+        }}
+        placeholder="Введите название задачи..."
+        className="w-full text-sm font-medium text-gray-800 placeholder-gray-400 outline-none resize-none mb-2"
+      />
+
+      {showOptions && (
+        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100">
+          <select
+            value={type}
+            onChange={e => setType(e.target.value as TaskType)}
+            className="text-xs px-2 py-1 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white"
+          >
+            <option value="task">✅ Задача</option>
+            <option value="story">📗 История</option>
+            <option value="bug">🐛 Баг</option>
+            <option value="epic">⚡ Эпик</option>
+          </select>
+          <select
+            value={priority}
+            onChange={e => setPriority(e.target.value as TaskPriority)}
+            className="text-xs px-2 py-1 border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white"
+          >
+            <option value="lowest">🔽 Низший</option>
+            <option value="low">⬇️ Низкий</option>
+            <option value="medium">➡️ Средний</option>
+            <option value="high">⬆️ Высокий</option>
+            <option value="highest">🔼 Критический</option>
+          </select>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setShowOptions(!showOptions)}
+          className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+        >
+          <i className={`fas ${showOptions ? 'fa-eye-slash' : 'fa-sliders-h'}`}></i>
+          {showOptions ? 'Скрыть' : 'Подробнее'}
+        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 rounded"
+          >
+            Отмена
+          </button>
+          <button
+            type="submit"
+            disabled={!title.trim()}
+            className="px-3 py-1 text-xs bg-blue-600 text-white rounded font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            Создать
+          </button>
+        </div>
+      </div>
+    </form>
   );
 }
 
@@ -80,9 +178,10 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
 
 export default function BoardPage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const { projects, tasks, users, currentUser, moveTask, updateTask } = useStore();
+  const { projects, tasks, users, currentUser, moveTask, updateTask, createTask } = useStore();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [addingToColumn, setAddingToColumn] = useState<TaskStatus | null>(null);
 
   const project = projects.find(p => p.id === projectId);
   const projectTasks = tasks.filter(t => t.projectId === projectId);
@@ -153,6 +252,7 @@ export default function BoardPage() {
               const columnTasks = projectTasks
                 .filter(t => t.status === column.id)
                 .sort((a, b) => a.order - b.order);
+              const isAdding = addingToColumn === column.id;
 
               return (
                 <DroppableColumn key={column.id} id={column.id}>
@@ -166,6 +266,17 @@ export default function BoardPage() {
                           {columnTasks.length}
                         </span>
                       </div>
+                      <button
+                        onClick={() => setAddingToColumn(isAdding ? null : column.id)}
+                        className={`w-6 h-6 rounded flex items-center justify-center transition ${
+                          isAdding
+                            ? 'bg-blue-100 text-blue-600 rotate-45'
+                            : 'text-gray-400 hover:text-gray-700 hover:bg-gray-200'
+                        }`}
+                        title="Добавить задачу"
+                      >
+                        <i className="fas fa-plus text-xs"></i>
+                      </button>
                     </div>
 
                     {/* Tasks */}
@@ -177,6 +288,28 @@ export default function BoardPage() {
                           onClick={() => setSelectedTask(task)}
                         />
                       ))}
+
+                      {/* Inline add form */}
+                      {isAdding && (
+                        <InlineTaskForm
+                          status={column.id}
+                          onClose={() => setAddingToColumn(null)}
+                          onCreate={(title, type, priority) => {
+                            createTask(project!.id, title, type, priority, column.id);
+                          }}
+                        />
+                      )}
+
+                      {/* Add button at the bottom */}
+                      {!isAdding && (
+                        <button
+                          onClick={() => setAddingToColumn(column.id)}
+                          className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition flex items-center justify-center gap-2 border border-dashed border-gray-200 hover:border-gray-300"
+                        >
+                          <i className="fas fa-plus text-xs"></i>
+                          <span>Добавить задачу</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </DroppableColumn>

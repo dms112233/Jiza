@@ -99,21 +99,25 @@ func (h *TaskHandler) Create(c *gin.Context) {
 	if priority == "" {
 		priority = "medium"
 	}
+	status := req.Status
+	if status == "" {
+		status = "backlog"
+	}
 
-	// Get max order for backlog
+	// Get max order for target column
 	var maxOrder int
 	h.DB.QueryRow(
-		"SELECT COALESCE(MAX(position_order), -1) FROM tasks WHERE project_id = $1 AND status = 'backlog'",
-		req.ProjectID,
+		"SELECT COALESCE(MAX(position_order), -1) FROM tasks WHERE project_id = $1 AND status = $2",
+		req.ProjectID, status,
 	).Scan(&maxOrder)
 
 	var t models.Task
 	err := h.DB.QueryRow(
-		`INSERT INTO tasks (id, project_id, title, description, type, priority, reporter_id, position_order)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		`INSERT INTO tasks (id, project_id, title, description, status, type, priority, reporter_id, position_order)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		 RETURNING id, project_id, title, description, status, priority, type,
 		 assignee_id, reporter_id, story_points, labels, position_order, created_at, updated_at`,
-		taskID, req.ProjectID, req.Title, req.Description, taskType, priority, userID, maxOrder+1,
+		taskID, req.ProjectID, req.Title, req.Description, status, taskType, priority, userID, maxOrder+1,
 	).Scan(
 		&t.ID, &t.ProjectID, &t.Title, &t.Description, &t.Status, &t.Priority,
 		&t.Type, &t.AssigneeID, &t.ReporterID, &t.StoryPoints, pq.Array(&t.Labels),
