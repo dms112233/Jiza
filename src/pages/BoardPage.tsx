@@ -251,23 +251,28 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
   const assignee = users.find(u => u.id === task.assigneeId);
   const deadlineStatus = getDeadlineStatus(task.deadline);
 
-  // Отслеживаем был ли drag для предотвращения клика после перетаскивания
-  const wasDraggingRef = useRef(false);
-  
-  useEffect(() => {
-    if (isDragging) {
-      wasDraggingRef.current = true;
-    }
-  }, [isDragging]);
+  // Отслеживаем было ли перемещение мыши для разделения клика и drag
+  const hasMovedRef = useRef(false);
+  const pointerDownPosRef = useRef({ x: 0, y: 0 });
 
-  const handleClick = () => {
-    // Если было перетаскивание, не открываем модалку и сбрасываем флаг
-    if (wasDraggingRef.current) {
-      wasDraggingRef.current = false;
-      return;
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
+    hasMovedRef.current = false;
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    const dx = Math.abs(e.clientX - pointerDownPosRef.current.x);
+    const dy = Math.abs(e.clientY - pointerDownPosRef.current.y);
+    if (dx > 5 || dy > 5) {
+      hasMovedRef.current = true;
     }
-    
-    onClick();
+  };
+
+  const handlePointerUp = () => {
+    // Открываем модалку только если не было перемещения
+    if (!hasMovedRef.current && !isDragging) {
+      onClick();
+    }
   };
 
   const deadlineBadge = () => {
@@ -297,7 +302,9 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
       className={`bg-white rounded-lg p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all ${
         isDragging ? 'opacity-50 shadow-lg' : ''
       } ${deadlineStatus === 'overdue' ? 'border-l-4 border-l-red-400' : deadlineStatus === 'due_soon' ? 'border-l-4 border-l-amber-400' : ''}`}
