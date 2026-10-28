@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   DndContext,
   DragOverlay,
   useDraggable,
   useDroppable,
+  useSensor,
+  useSensors,
+  PointerSensor,
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
@@ -247,6 +250,24 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
   const assignee = users.find(u => u.id === task.assigneeId);
   const deadlineStatus = getDeadlineStatus(task.deadline);
 
+  // Отслеживаем был ли drag для предотвращения клика после перетаскивания
+  const wasDraggingRef = useRef(false);
+  
+  useEffect(() => {
+    if (isDragging) {
+      wasDraggingRef.current = true;
+    }
+  }, [isDragging]);
+
+  const handleClick = () => {
+    // Не открывать модалку если был drag
+    if (!wasDraggingRef.current) {
+      onClick();
+    }
+    // Сбрасываем флаг после клика
+    wasDraggingRef.current = false;
+  };
+
   const deadlineBadge = () => {
     if (!task.deadline) return null;
     const colors = {
@@ -274,24 +295,11 @@ function DraggableCard({ task, onClick }: { task: Task; onClick: () => void }) {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      onClick={onClick}
-      className={`bg-white rounded-lg p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all group relative ${
+      onClick={handleClick}
+      className={`bg-white rounded-lg p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all ${
         isDragging ? 'opacity-50 shadow-lg' : ''
       } ${deadlineStatus === 'overdue' ? 'border-l-4 border-l-red-400' : deadlineStatus === 'due_soon' ? 'border-l-4 border-l-amber-400' : ''}`}
     >
-      {/* Edit button on hover */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick();
-        }}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm z-10"
-        title="Редактировать задачу"
-      >
-        <i className="fas fa-edit text-xs"></i>
-        <span>Редактировать</span>
-      </button>
-
       <div className="flex items-start gap-2 mb-1">
         <span className="text-sm">{TYPE_ICONS[task.type]}</span>
         <p className="text-sm font-medium text-gray-800 flex-1 leading-snug">{task.title}</p>
@@ -336,6 +344,16 @@ export default function BoardPage() {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [addingToColumn, setAddingToColumn] = useState<TaskStatus | null>(null);
+
+  // Сенсор для drag-and-drop с задержкой 700мс
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        delay: 700,
+        tolerance: 5,
+      },
+    })
+  );
 
   const project = projects.find(p => p.id === projectId);
   const projectTasks = tasks.filter(t => t.projectId === projectId);
@@ -400,7 +418,7 @@ export default function BoardPage() {
 
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto p-4">
-        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex gap-4 h-full min-w-max">
             {STATUS_COLUMNS.map(column => {
               const columnTasks = projectTasks
